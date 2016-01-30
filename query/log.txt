@@ -1,0 +1,21 @@
+Attrs:Location|Illinois;;Doc#:871
+Attrs:Topic|Sports;Location|Illinois;;Doc#:502
+Attrs:Location|New York City;;Doc#:996
+Attrs:Location|China;;Doc#:1059
+Attrs:Location|Russia;;Doc#:1393
+Attrs:Location|Japan;;Doc#:312
+Attrs:Location|North Korea;;Doc#:126
+Attrs:Topic|Asia Pacific;;Doc#:4369
+Attrs:Topic|Africa;;Doc#:1926
+Attrs:Topic|Gay Right;;Doc#:131
+Attrs:Location|Syria;;Doc#:390
+Attrs:Topic|Military;Location|United States of America;;Doc#:182
+Attrs:Topic|Basketball;Location|United States of America;;Doc#:889
+Attrs:Topic|Music;Location|United States of America;;Doc#:293
+Attrs:Topic|Politics;Location|United States of America;;Doc#:4368
+Attrs:Topic|Gun Control;Location|United States of America;;Doc#:151
+Attrs:Topic|Health;Location|United States of America;;Doc#:342
+Attrs:Topic|Immigration;Location|United States of America;;Doc#:181
+Attrs:Topic|Politics;Location|China;;Doc#:17
+Attrs:Topic|Environment;Location|China;;Doc#:4
+Attrs:Topic|Economy;Location|China;;Doc#:60
