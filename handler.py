@@ -213,7 +213,7 @@ def handle_explanations(explanations):
 
 
 
-measures = {'ranking', 'delta', 'tf', 'subcmp', 'subcmpbi'}
+measures = ['ranking', 'delta', 'tf', 'subcmp', 'subcmpbi']
 cell_size_threshold = 40
 
 
@@ -252,29 +252,29 @@ if __name__ == "__main__":
 
 	# the examined phrases
 	# single phrases
-	# phrases = [[x[0]] for x in original_ranked_list[:k]]  # ['domestic demand', 'financial crisis', 'billion euros', 'economic growth', 'troubled banks']
+	phrases = [[x[0]] for x in original_ranked_list[:k]]  # ['domestic demand', 'financial crisis', 'billion euros', 'economic growth', 'troubled banks']
 	# multiple phrases
-	number = 2
-	test_case = 30
-	phrases = []
-	for i in range(test_case):
-		phrases.append([original_ranked_list[i][0] for i in random.sample(xrange(k), number)])
+	# number = 2
+	# test_case = 30
+	# phrases = []
+	# for i in range(test_case):
+	# 	phrases.append([original_ranked_list[i][0] for i in random.sample(xrange(k), number)])
 
 
 	explanations = {}
 	for measure in measures:
-		explanations[measure] = {x : {} for x in phrases} 
+		explanations[measure] = {'_'.join(x) : {} for x in phrases} 
 
 	# add the default non-intervenation
-	for phrase in phrases:
-		phrase_key = '_'.join(phrase)
+	for phs in phrases:
+		phrase_key = '_'.join(phs)
 
 		for measure in measures:
 			explanations[measure][phrase_key]['ORIGINAL'] = 0
 
-		for ph in phrase:
+		for phrase in phs:
 			for i in range(len(original_ranked_list)):
-				if original_ranked_list[i][0] == ph:
+				if original_ranked_list[i][0] == phrase:
 					index = i
 					break
 			explanations['delta'][phrase_key]['ORIGINAL'] += original_ranked_list[index][1]
