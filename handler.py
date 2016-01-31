@@ -384,12 +384,12 @@ if __name__ == "__main__":
 	for phs in phrases:
 		phrase_key = '_'.join(phs)
 		for measure in measures:
-			explanations[measure][phrase_key] = sorted(z)
-		explanations['ranking'][phrase] = sorted(explanations['ranking'][phrase].items(), key=operator.itemgetter(1))
-		explanations['delta'][phrase] = sorted(explanations['delta'][phrase].items(), key=operator.itemgetter(1))
-		explanations['tf'][phrase] = sorted(explanations['tf'][phrase].items(), key=operator.itemgetter(1))
-		explanations['subcmp'][phrase] = sorted(explanations['subcmp'][phrase].items(), key=operator.itemgetter(1), reverse=True)
-		explanations['subcmpbi'][phrase] = sorted(explanations['subcmpbi'][phrase].items(), key=operator.itemgetter(1), reverse=True)
+			explanations[measure][phrase_key] = sorted(explanations[measure][phrase_key])
+		# explanations['ranking'][phrase] = sorted(explanations['ranking'][phrase].items(), key=operator.itemgetter(1))
+		# explanations['delta'][phrase] = sorted(explanations['delta'][phrase].items(), key=operator.itemgetter(1))
+		# explanations['tf'][phrase] = sorted(explanations['tf'][phrase].items(), key=operator.itemgetter(1))
+		# explanations['subcmp'][phrase] = sorted(explanations['subcmp'][phrase].items(), key=operator.itemgetter(1), reverse=True)
+		# explanations['subcmpbi'][phrase] = sorted(explanations['subcmpbi'][phrase].items(), key=operator.itemgetter(1), reverse=True)
 	
 	pickle.dump(explanations, open('<Business>_exp.dump', 'wb'))
 
