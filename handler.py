@@ -155,6 +155,65 @@ def create_dump():
 	sys.exit()
 
 
+def create_subcell_stats(olaporp_instance):
+	subcell_stats = {}
+
+	handler = Handler()
+	all_docs = list(olaporp_instance.selected_docs)
+	print 'ALL DOCS: %d' % len(all_docs)
+
+	hier = handler.dt.hiers['Location']
+	# binary comp and full comp:
+	all_countries = [hier.ind[x] for x in hier.idd[hier.ipd[hier.nid['China']][0]]]
+	country_stats = {}
+	original_docs = set(all_docs)
+	for country in all_countries:
+		country_stats[country] = {}
+		query_dict = {'Topic': 'Business', 'Location': country}
+		c_docs = [doc for doc in handler.dt.slice_and_return_doc_id(query_dict)]
+		c_docs = [x for x in c_docs if x in original_docs]
+		country_stats[country]['docs'] = c_docs
+		phrase_cnt = agg_phrase_cnt(handler.freq_data, c_docs)
+		country_stats[country]['phrases'] = phrase_cnt
+		country_stats[country]['sum_cnt'] = sum(phrase_cnt.values())
+
+	# country_stats['total_sum_cnt'] = sum([country_stats[country]['sum_cnt'] for country in country_stats])
+	subcell_stats['country'] = country_stats
+
+
+
+	hier = handler.dt.hiers['Topic']
+	# binary comp and full comp:
+	all_countries = [hier.ind[x] for x in hier.idd[hier.ipd[hier.nid['Stocks and Bonds']][0]]]
+	country_stats = {}
+	original_docs = set(all_docs)
+	for country in all_countries:
+		country_stats[country] = {}
+		query_dict = {'Topic': country}
+		c_docs = [doc for doc in handler.dt.slice_and_return_doc_id(query_dict)]
+		c_docs = [x for x in c_docs if x in original_docs]
+		country_stats[country]['docs'] = c_docs
+		phrase_cnt = agg_phrase_cnt(handler.freq_data, c_docs)
+		country_stats[country]['phrases'] = phrase_cnt
+		country_stats[country]['sum_cnt'] = sum(phrase_cnt.values())
+
+	# country_stats['total_sum_cnt'] = sum([country_stats[country]['sum_cnt'] for country in country_stats])
+	subcell_stats['topic'] = country_stats
+
+	original_ranked_list = olaporp_instance.update_computing()
+	phrases = [[x[0]] for x in original_ranked_list[:100]]
+	subcell_stats['phrases'] = phrases
+
+	print '========================================'
+	pickle.dump(subcell_stats, open('<Business>_subcells.dump', 'wb'))
+
+	sys.exit()
+
+
+
+
+
+
 def dcg(ranked_list):
 	index = 1
 	result_dcg = 0
@@ -162,6 +221,27 @@ def dcg(ranked_list):
 		result_dcg += rel_score / math.log(index + 1)
 		index += 1
 	return result_dcg
+
+
+def information_gain(P, Q):
+	'''
+		Compute the KL-divergence of P given Q,
+		Assuming that P, Q are valid distributions with the same keys
+	'''
+	gain = 0
+	for key in P:
+		prob_P = P[key]
+		prob_Q = Q.get(key, 0)
+		if prob_P != 0 and prob_Q == 0:
+			print 'KL-Divergence Assumption not satisfied!!'
+			break
+		if prob_P == 0:
+			continue
+		gain += prob_P * math.log(prob_P / prob_Q)
+
+	return gain
+
+
 
 
 def evaluate(expls_origin, expls_new):
@@ -220,9 +300,35 @@ def handle_explanations(explanations):
 	return ndcg
 
 
+def handle_subcell_stats(subcell_stats):
+	# phrase = subcell_stats['phrases'][0][0]
+	phrases = [x[0] for x in subcell_stats['phrases']]
+	dimensions = ['country', 'topic']
+
+
+	for phrase in phrases:		
+		print '===== Phrase: %s' % phrase
+
+		# country_stats['total_sum_cnt'] = sum([country_stats[country]['sum_cnt'] for country in country_stats])
+		for dim in dimensions:
+			stats = subcell_stats[dim]
+			P = {dim_v : 0 for dim_v in stats}
+			Q = {dim_v : 0 for dim_v in stats}
+			total_cnt = sum([stats[dim_v]['sum_cnt'] for dim_v in stats])
+			total_phrase_cnt = sum([stats[dim_v]['phrases'].get(phrase, 0) for dim_v in stats])
+			for dim_v in stats:
+				Q[dim_v] = float(stats[dim_v]['sum_cnt'] / float(total_cnt))
+				P[dim_v] = float(stats[dim_v]['phrases'].get(phrase, 0) / float(total_phrase_cnt))
+
+			print 'Information Gain of %s is %f' % (dim, information_gain(P, Q))
+
+
+	sys.exit()
+
 
 measures = ['ranking', 'delta', 'delta_normalize', 'tf', 'delta_ranking', 'subcmp', 'subcmpbi']
 cell_size_threshold = 40
+
 
 
 if __name__ == "__main__":
@@ -236,6 +342,16 @@ if __name__ == "__main__":
 		explanations = pickle.load(open('<Business>_exp.dump', 'rb'))
 		# explanations = pickle.load(open('<Business>_exp_2ph.dump', 'rb'))
 		return explanations
+
+	def load_subcell_stats():
+		subcell_stats = pickle.load(open('<Business>_subcells.dump', 'rb'))
+		return subcell_stats
+
+	# temp: create subcell statistics dump
+	# olaporp_instance = load_dump()
+	# create_subcell_stats(olaporp_instance)
+	handle_subcell_stats(load_subcell_stats())
+
 
 	# temp: for handle explanations
 	handle_explanations(load_explanations())
