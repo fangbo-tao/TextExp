@@ -147,7 +147,7 @@ def create_dump():
 		if ' ' in phrase[0]:
 			print phrase[0]
 			inx += 1
-		if inx >= 20:
+		if inx >= 100:
 			break
 	print '========================================'
 	pickle.dump(olaporp_instance, open('<Business>.dump', 'wb'))
@@ -176,12 +176,18 @@ def evaluate(expls_origin, expls_new):
 
 		ori_rank = [rank for (method, rank) in expls_origin[phrase] if method == 'ORIGINAL'][0]
 
-		ori_rank = 1/math.log(ori_rank + 2, 2)
+		# ori_rank = 1/math.log(ori_rank + 2, 2)
 		# The worst relevance is 0, not negative
-		ori_ranked_list = [(explain, max(ori_rank - 1/math.log(value + 2, 2), 0)) for (explain, value) in expls_origin[phrase] if explain != 'ORIGINAL']
+		# ori_ranked_list = [(explain, max(ori_rank - 1/math.log(value + 2, 2), 0)) for (explain, value) in expls_origin[phrase] if explain != 'ORIGINAL']
+
+		ori_ranked_list = [(explain, max(ori_rank - value, 0)) for (explain, value) in expls_origin[phrase] if explain != 'ORIGINAL']
+
 		ori_dict = dict(ori_ranked_list)
 
 		ori_dcg = dcg(ori_ranked_list)
+
+		# import ipdb
+		# ipdb.set_trace()
 		
 		# if there is no valid explanation, skip this case
 		if ori_dcg <= 0:
@@ -203,7 +209,9 @@ def handle_explanations(explanations):
 	ipdb.set_trace()
 
 	print evaluate(explanations['ranking'], explanations['ranking'])
+	# print evaluate(explanations['ranking'], explanations['delta_ranking'])
 	print evaluate(explanations['ranking'], explanations['delta'])
+	# print evaluate(explanations['ranking'], explanations['delta_normalize'])
 	print evaluate(explanations['ranking'], explanations['tf'])
 	print evaluate(explanations['ranking'], explanations['subcmp'])
 	print evaluate(explanations['ranking'], explanations['subcmpbi'])
@@ -213,7 +221,7 @@ def handle_explanations(explanations):
 
 
 
-measures = ['ranking', 'delta', 'tf', 'subcmp', 'subcmpbi']
+measures = ['ranking', 'delta', 'delta_normalize', 'tf', 'delta_ranking', 'subcmp', 'subcmpbi']
 cell_size_threshold = 40
 
 
@@ -226,18 +234,16 @@ if __name__ == "__main__":
 
 	def load_explanations():
 		explanations = pickle.load(open('<Business>_exp.dump', 'rb'))
+		# explanations = pickle.load(open('<Business>_exp_2ph.dump', 'rb'))
 		return explanations
 
 	# temp: for handle explanations
-	# handle_explanations(load_explanations())
+	handle_explanations(load_explanations())
 
 	# temp: create cell computation dump
 	# create_dump()
 
 	handler = Handler()
-
-	
-
 
 
 	# The case study queries
@@ -249,16 +255,21 @@ if __name__ == "__main__":
 	print 'ALL DOCS: %d' % len(all_docs)
 
 	original_ranked_list = olaporp_instance.update_computing()
+	original_ranked_dict = {original_ranked_list[i][0] : i for i in range(len(original_ranked_list))}
+
+	import ipdb
+	ipdb.set_trace()
+
 
 	# the examined phrases
 	# single phrases
-	phrases = [[x[0]] for x in original_ranked_list[:k]]  # ['domestic demand', 'financial crisis', 'billion euros', 'economic growth', 'troubled banks']
+	# phrases = [[x[0]] for x in original_ranked_list[:k]]  # ['domestic demand', 'financial crisis', 'billion euros', 'economic growth', 'troubled banks']
 	# multiple phrases
-	# number = 2
-	# test_case = 30
-	# phrases = []
-	# for i in range(test_case):
-	# 	phrases.append([original_ranked_list[i][0] for i in random.sample(xrange(k), number)])
+	number = 3
+	test_case = 50
+	phrases = []
+	for i in range(test_case):
+		phrases.append([original_ranked_list[i][0] for i in random.sample(xrange(k), number)])
 
 
 	explanations = {}
@@ -277,7 +288,9 @@ if __name__ == "__main__":
 				if original_ranked_list[i][0] == phrase:
 					index = i
 					break
+			explanations['delta_ranking'][phrase_key]['ORIGINAL'] += 1/math.log(index + 2, 2)
 			explanations['delta'][phrase_key]['ORIGINAL'] += original_ranked_list[index][1]
+			explanations['delta_normalize'][phrase_key]['ORIGINAL'] += 1/math.log(index + 2, 2) * original_ranked_list[index][1]
 			explanations['ranking'][phrase_key]['ORIGINAL'] += 1/math.log(index + 2, 2)
 			explanations['tf'][phrase_key]['ORIGINAL'] += olaporp_instance.phrase_cnt[phrase]
 			explanations['subcmp'][phrase_key]['ORIGINAL'] += 0
@@ -374,7 +387,15 @@ if __name__ == "__main__":
 					if ranked_list[i][0] == phrase:
 						index = i
 						break
+				rank_in_old = 0
+				for i in range(len(original_ranked_list)):
+					rank_in_old = i
+					if original_ranked_list[i][1] <= ranked_dict[phrase]:
+						break
+				phrase_ori_rank = original_ranked_dict[phrase]
+				explanations['delta_ranking'][phrase_key][str(query)] += 1/math.log(rank_in_old + 2, 2)
 				explanations['delta'][phrase_key][str(query)] += ranked_dict[phrase]
+				explanations['delta_normalize'][phrase_key][str(query)] += 1/math.log(phrase_ori_rank + 2, 2) * ranked_dict[phrase]
 				explanations['ranking'][phrase_key][str(query)] += 1/math.log(index + 2, 2)
 				explanations['tf'][phrase_key][str(query)] += olaporp_instance.phrase_cnt[phrase]
 	
@@ -384,14 +405,14 @@ if __name__ == "__main__":
 	for phs in phrases:
 		phrase_key = '_'.join(phs)
 		for measure in measures:
-			explanations[measure][phrase_key] = sorted(explanations[measure][phrase_key])
+			explanations[measure][phrase_key] = sorted(explanations[measure][phrase_key].items(), key=operator.itemgetter(1))
 		# explanations['ranking'][phrase] = sorted(explanations['ranking'][phrase].items(), key=operator.itemgetter(1))
 		# explanations['delta'][phrase] = sorted(explanations['delta'][phrase].items(), key=operator.itemgetter(1))
 		# explanations['tf'][phrase] = sorted(explanations['tf'][phrase].items(), key=operator.itemgetter(1))
 		# explanations['subcmp'][phrase] = sorted(explanations['subcmp'][phrase].items(), key=operator.itemgetter(1), reverse=True)
 		# explanations['subcmpbi'][phrase] = sorted(explanations['subcmpbi'][phrase].items(), key=operator.itemgetter(1), reverse=True)
 	
-	pickle.dump(explanations, open('<Business>_exp.dump', 'wb'))
+	pickle.dump(explanations, open('<Business>_exp_3ph.dump', 'wb'))
 
 
 
